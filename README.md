@@ -30,7 +30,7 @@ A modern, responsive, real-time cricket scoring application built with Node.js, 
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/yourusername/cricket-live-score.git
+   git clone https://github.com/jaisatyaabhiram/cricket-live-score.git
    cd cricket-live-score
    ```
 
