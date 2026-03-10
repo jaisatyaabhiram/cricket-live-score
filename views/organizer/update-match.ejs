@@ -126,10 +126,17 @@
                 </div>
 
                 <div class="glass-panel" style="padding: 1rem;">
-                    <h4 style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem; text-transform: uppercase;">Recent Balls</h4>
+                    <h4 style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem; text-transform: uppercase;">Recent Balls <span style="font-size:0.7rem; color: var(--text-muted);">(click to edit)</span></h4>
                     <div id="recent-balls-preview" class="balls-grid">
-                        <% match.recentBalls.filter(b => !b.inningsNum || b.inningsNum === match.currentInnings).forEach(ball => { %>
-                            <div class="ball <%= ball.wicket ? 'wicket' : '' %> <%= ball.runs >= 4 ? 'boundary-'+ball.runs : '' %>">
+                        <% match.recentBalls.filter(b => !b.inningsNum || b.inningsNum === match.currentInnings).forEach((ball, i, arr) => { %>
+                            <%
+                                // Real index in the full recentBalls array
+                                const realIdx = match.recentBalls.indexOf(ball);
+                            %>
+                            <div class="ball <%= ball.wicket ? 'wicket' : '' %> <%= ball.runs >= 4 ? 'boundary-'+ball.runs : '' %>"
+                                 onclick="openEditBallModal(<%= realIdx %>)"
+                                 style="cursor:pointer; position:relative;"
+                                 title="Click to edit this ball">
                                 <%= ball.wicket ? 'W' : ball.runs %>
                             </div>
                         <% }) %>
@@ -241,6 +248,47 @@
             </div>
         </div>
     </main>
+
+        <!-- Edit Ball Modal -->
+        <div id="editBallModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center;">
+            <div class="glass-panel" style="width: 90%; max-width: 480px; padding: 2rem;">
+                <h2 style="margin-bottom: 0.5rem;">✏️ Edit Ball</h2>
+                <p style="font-size:0.8rem; color: var(--text-secondary); margin-bottom: 1.5rem;">Score will be fully recalculated after saving.</p>
+
+                <input type="hidden" id="editBallIndex">
+
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-size: 0.8rem; color: var(--text-muted);">Runs scored (team total for this ball)</label>
+                    <input type="number" id="editBallRuns" min="0" max="20" value="0" style="width: 100%; padding: 0.8rem;">
+                </div>
+
+                <div style="margin-bottom: 1rem; display: flex; gap: 1.5rem; align-items: center;">
+                    <label style="font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" id="editBallWicket" onchange="toggleEditWicketFields()" style="width:18px; height:18px;"> Wicket?
+                    </label>
+                    <label style="font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" id="editBallIsExtra" style="width:18px; height:18px;"> Extra ball? (Wide/NB – doesn't count as a legal delivery)
+                    </label>
+                </div>
+
+                <div id="editWicketFields" style="display:none; margin-bottom: 1rem; background: rgba(255,80,80,0.08); border: 1px solid var(--danger); border-radius: var(--radius-sm); padding: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-size: 0.8rem; color: var(--text-muted);">Wicket type</label>
+                    <select id="editWicketType" style="width: 100%; padding: 0.8rem; margin-bottom: 0.8rem;">
+                        <option value="bowled">Bowled</option>
+                        <option value="caught">Caught</option>
+                        <option value="runout">Run Out</option>
+                        <option value="lbw">LBW</option>
+                        <option value="stumped">Stumped</option>
+                        <option value="hit_wicket">Hit Wicket</option>
+                    </select>
+                </div>
+
+                <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                    <button onclick="closeEditBallModal()" class="btn-secondary" style="flex: 1;">Cancel</button>
+                    <button onclick="submitEditBall()" class="btn-primary" style="flex: 1;">💾 Save & Recalculate</button>
+                </div>
+            </div>
+        </div>
     
     <script>
         const matchId = '<%= match.id %>';
@@ -539,6 +587,76 @@
 
         // Initialize lists on load
         window.onload = () => refreshBatterDropdowns(matchData);
+
+        // ── Edit Ball Modal ─────────────────────────────────────────────
+        function openEditBallModal(index) {
+            const ball = matchData.recentBalls[index];
+            if (!ball) return;
+
+            document.getElementById('editBallIndex').value = index;
+            document.getElementById('editBallRuns').value = ball.runs || 0;
+            document.getElementById('editBallWicket').checked = !!ball.wicket;
+            document.getElementById('editBallIsExtra').checked = !!ball.isExtraBall;
+            if (ball.wicketData && ball.wicketData.type) {
+                document.getElementById('editWicketType').value = ball.wicketData.type;
+            }
+            toggleEditWicketFields();
+            document.getElementById('editBallModal').style.display = 'flex';
+        }
+
+        function closeEditBallModal() {
+            document.getElementById('editBallModal').style.display = 'none';
+        }
+
+        function toggleEditWicketFields() {
+            const isWicket = document.getElementById('editBallWicket').checked;
+            document.getElementById('editWicketFields').style.display = isWicket ? 'block' : 'none';
+        }
+
+        async function submitEditBall() {
+            const index = parseInt(document.getElementById('editBallIndex').value);
+            const runs = parseInt(document.getElementById('editBallRuns').value || 0);
+            const wicket = document.getElementById('editBallWicket').checked;
+            const isExtraBall = document.getElementById('editBallIsExtra').checked;
+            const wicketType = document.getElementById('editWicketType').value;
+
+            const ballData = {
+                runs,
+                wicket,
+                isExtraBall,
+                wicketData: wicket ? { type: wicketType } : null
+            };
+
+            try {
+                document.body.style.cursor = 'wait';
+                const res = await fetch(`/organizer/match/${matchId}/edit-ball`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ index, ballData })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    closeEditBallModal();
+                    updatePreviewLocally(result.match);
+                    // Re-render ball chips with updated data
+                    const currentInnings = result.match.currentInnings;
+                    const container = document.getElementById('recent-balls-preview');
+                    const balls = (result.match.recentBalls || []).filter(b => !b.inningsNum || b.inningsNum === currentInnings);
+                    container.innerHTML = balls.map((b, i) => {
+                        const realIdx = result.match.recentBalls.indexOf(b);
+                        const cls = `ball ${b.wicket ? 'wicket' : ''} ${b.runs >= 4 ? 'boundary-'+(b.runs||0) : ''}`;
+                        return `<div class="${cls}" onclick="openEditBallModal(${realIdx})" style="cursor:pointer;" title="Click to edit">${b.wicket ? 'W' : (b.runs||0)}</div>`;
+                    }).join('');
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Network error editing ball.');
+            } finally {
+                document.body.style.cursor = 'default';
+            }
+        }
     </script>
 </body>
 </html>

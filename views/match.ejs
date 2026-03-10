@@ -11,6 +11,8 @@
 <body>
     <%- include('partials/header') %>
     
+    <canvas id="fireworks-canvas" class="fireworks-canvas"></canvas>
+
     <main class="container">
         <!-- Live Match Header -->
         <div class="match-details glass-panel" id="match-container" style="padding: 0; overflow: hidden; margin-bottom: 2rem;">
@@ -247,6 +249,83 @@
             `;
         }
 
+        let fireworksFired = false;
+        function launchFireworks() {
+            if (fireworksFired) return;
+            fireworksFired = true;
+
+            const canvas = document.getElementById('fireworks-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const particles = [];
+            const colors = ['#00ff88', '#00ccff', '#ff3366', '#ffea00', '#ffffff'];
+
+            class Particle {
+                constructor(x, y, color) {
+                    this.x = x;
+                    this.y = y;
+                    this.color = color;
+                    this.size = Math.random() * 4 + 2;
+                    this.speedX = Math.random() * 8 - 4;
+                    this.speedY = Math.random() * 8 - 4;
+                    this.life = 100;
+                    this.gravity = 0.1;
+                    this.friction = 0.98;
+                }
+                update() {
+                    this.speedX *= this.friction;
+                    this.speedY *= this.friction;
+                    this.speedY += this.gravity;
+                    this.x += this.speedX;
+                    this.y += this.speedY;
+                    this.life -= 1.5;
+                }
+                draw() {
+                    ctx.fillStyle = this.color;
+                    ctx.globalAlpha = this.life / 100;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            function createBurst() {
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * (canvas.height / 2);
+                for (let i = 0; i < 40; i++) {
+                    particles.push(new Particle(x, y, colors[Math.floor(Math.random() * colors.length)]));
+                }
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                for (let i = 0; i < particles.length; i++) {
+                    particles[i].update();
+                    particles[i].draw();
+                    if (particles[i].life <= 0) {
+                        particles.splice(i, 1);
+                        i--;
+                    }
+                }
+                if (particles.length > 0) {
+                    requestAnimationFrame(animate);
+                } else {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            }
+
+            // Launch several bursts over 3 seconds
+            let bursts = 0;
+            const interval = setInterval(() => {
+                createBurst();
+                bursts++;
+                if (bursts === 1) animate();
+                if (bursts > 8) clearInterval(interval);
+            }, 400);
+        }
+
         function updateMatchDisplay(match) {
             // Update big header
             document.getElementById('match-container').innerHTML = `
@@ -277,6 +356,11 @@
                 </div>
             `;
             
+            // Launch fireworks if match is newly finished
+            if ((match.matchStatus === 'completed' || match.matchStatus === 'conclusion_pending') && match.winningTeam) {
+                setTimeout(launchFireworks, 500);
+            }
+
             buildScorecardUI(match);
             
             // Update Mini Stats for Current Batters/Bowlers

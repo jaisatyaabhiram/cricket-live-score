@@ -252,6 +252,123 @@ class Match {
     }
   }
 
+  // Edit a specific ball in recentBalls (index 0 = most recent) and recalculate everything
+  async editBall(index, newBallData) {
+    if (index < 0 || index >= this.recentBalls.length) {
+      throw new Error('Invalid ball index');
+    }
+    // Merge updated fields into the stored ball snapshot
+    this.recentBalls[index] = { ...this.recentBalls[index], ...newBallData };
+    await this.recalculateFromBalls();
+    await this.save();
+    return this;
+  }
+
+  // Replay all recentBalls (oldest first) to recalculate scores, scorecard, and match state
+  recalculateFromBalls() {
+    // Reset team scores
+    this.team1Score = { runs: 0, wickets: 0, overs: 0, balls: 0 };
+    this.team2Score = { runs: 0, wickets: 0, overs: 0, balls: 0 };
+
+    // Reset scorecard
+    this.scorecard = {
+      innings1: { batting: [], bowling: [] },
+      innings2: { batting: [], bowling: [] }
+    };
+
+    // Reset innings to 1 (replay will advance if needed)
+    this.currentInnings = 1;
+    this.matchStatus = 'live';
+    this.winningTeam = '';
+    this.matchResult = '';
+
+    // recentBalls is newest-first; replay from oldest to newest (reverse order)
+    const ordered = [...this.recentBalls].reverse();
+
+    for (const ball of ordered) {
+      const inningsNum = ball.inningsNum || 1;
+      const battingTeam = inningsNum === 1
+        ? this.battingFirst
+        : (this.battingFirst === this.team1 ? this.team2 : this.team1);
+      const score = battingTeam === this.team1 ? this.team1Score : this.team2Score;
+
+      // Apply runs
+      score.runs += (ball.runs || 0);
+      if (ball.wicket) score.wickets += 1;
+      if (!ball.isExtraBall) {
+        score.balls += 1;
+        if (score.balls >= 6) {
+          score.overs += 1;
+          score.balls = 0;
+        }
+      }
+
+      // Update scorecard from the snapshot stored on the ball
+      const savedInnings = inningsNum === 1 ? this.scorecard.innings1 : this.scorecard.innings2;
+
+      // Batting — apply striker/nonStriker snapshots
+      const applyBatterSnapshot = (snap) => {
+        if (!snap || !snap.name) return;
+        const list = savedInnings.batting;
+        const searchTerm = snap.name.toLowerCase().trim();
+        let existing = list.find(p => p.name.toLowerCase().trim() === searchTerm);
+        if (existing) {
+          Object.assign(existing, snap);
+        } else {
+          list.push({ ...snap });
+        }
+      };
+      applyBatterSnapshot(ball.striker);
+      applyBatterSnapshot(ball.nonStriker);
+
+      // Bowling — apply bowler snapshot
+      if (ball.bowler && ball.bowler.name) {
+        const bowlingList = savedInnings.bowling;
+        const searchTerm = ball.bowler.name.toLowerCase().trim();
+        let existing = bowlingList.find(b => b.name.toLowerCase().trim() === searchTerm);
+        if (existing) {
+          Object.assign(existing, ball.bowler);
+        } else {
+          bowlingList.push({ ...ball.bowler });
+        }
+      }
+    }
+
+    // After replay, check innings and win conditions
+    const firstInningsTeam = this.battingFirst;
+    const secondInningsTeam = firstInningsTeam === this.team1 ? this.team2 : this.team1;
+    const firstScore = firstInningsTeam === this.team1 ? this.team1Score : this.team2Score;
+    const secondScore = secondInningsTeam === this.team1 ? this.team1Score : this.team2Score;
+
+    // Check if any ball belongs to innings 2 (means innings 1 already ended)
+    const hasInnings2 = this.recentBalls.some(b => b.inningsNum === 2);
+    if (hasInnings2) {
+      this.currentInnings = 2;
+      // Check win
+      if (secondScore.runs > firstScore.runs) {
+        this.matchStatus = 'conclusion_pending';
+        this.winningTeam = secondInningsTeam;
+        this.matchResult = `${secondInningsTeam} won by ${10 - secondScore.wickets} wickets`;
+      } else if (secondScore.wickets >= 10 || (secondScore.overs >= this.overs && secondScore.balls === 0)) {
+        if (firstScore.runs > secondScore.runs) {
+          this.matchStatus = 'conclusion_pending';
+          this.winningTeam = firstInningsTeam;
+          this.matchResult = `${firstInningsTeam} won by ${firstScore.runs - secondScore.runs} runs`;
+        } else if (firstScore.runs === secondScore.runs) {
+          this.matchStatus = 'tie_pending';
+          this.matchResult = 'Match Tied';
+        }
+      }
+    } else {
+      this.currentInnings = 1;
+      if (firstScore.wickets >= 10 || (firstScore.overs >= this.overs && firstScore.balls === 0)) {
+        this.currentInnings = 2;
+        this.matchResult = `Target: ${firstScore.runs + 1} runs`;
+      }
+    }
+  }
+
+
   async finalizeMatch() {
     if (this.matchStatus === 'conclusion_pending' || this.matchStatus === 'tie_pending') {
       this.matchStatus = 'completed';

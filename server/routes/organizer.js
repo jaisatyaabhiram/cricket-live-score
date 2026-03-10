@@ -435,5 +435,27 @@ router.post('/match/:id/reopen', requireOrganizer, async (req, res) => {
     }
 });
 
+// Edit a specific ball and recalculate score
+router.post('/match/:id/edit-ball', requireOrganizer, async (req, res) => {
+    try {
+        const { index, ballData } = req.body;
+        const match = await Match.findById(req.params.id);
+        if (!match) return res.status(404).json({ error: 'Match not found' });
+
+        if (match.organizerId && match.organizerId !== req.session.user.uid) {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
+
+        await match.editBall(index, ballData);
+
+        // Emit real-time update to all watching clients
+        req.io.to(`match-${match.id}`).emit('match-update', match);
+
+        res.json({ success: true, match });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 module.exports = router;
 
