@@ -6,6 +6,9 @@
     "start": "node server/index.js",
     "dev": "nodemon server/index.js"
   },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "dependencies": {
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
