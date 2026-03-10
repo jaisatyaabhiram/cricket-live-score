@@ -85,7 +85,7 @@
                         <select onchange="updateActivePlayers()" id="striker-name" style="width: 100%; margin: 0.5rem 0; border-color: <%= !match.currentBatsmen.striker.name ? 'var(--accent-primary)' : 'var(--border-glass)' %>;">
                             <option value="">-- Select Striker --</option>
                             <% battingSquad.forEach(p => { %>
-                                <option value="<%= p.name %>" <%= match.currentBatsmen.striker.name === p.name ? 'selected' : '' %>><%= p.name %></option>
+                                <option value="<%= p.id %>" data-name="<%= p.name %>" <%= (match.currentBatsmen.striker.id === p.id || (!match.currentBatsmen.striker.id && match.currentBatsmen.striker.name === p.name)) ? 'selected' : '' %>><%= p.name %></option>
                             <% }) %>
                         </select>
                         <div style="display: flex; justify-content: space-between; margin-top: 0.5rem;">
@@ -100,7 +100,7 @@
                         <select onchange="updateActivePlayers()" id="nonStriker-name" style="width: 100%; margin: 0.5rem 0; border-color: <%= !match.currentBatsmen.nonStriker.name ? 'var(--accent-primary)' : 'var(--border-glass)' %>;">
                             <option value="">-- Select Non-Striker --</option>
                             <% battingSquad.forEach(p => { %>
-                                <option value="<%= p.name %>" <%= match.currentBatsmen.nonStriker.name === p.name ? 'selected' : '' %>><%= p.name %></option>
+                                <option value="<%= p.id %>" data-name="<%= p.name %>" <%= (match.currentBatsmen.nonStriker.id === p.id || (!match.currentBatsmen.nonStriker.id && match.currentBatsmen.nonStriker.name === p.name)) ? 'selected' : '' %>><%= p.name %></option>
                             <% }) %>
                         </select>
                         <div style="display: flex; justify-content: space-between; margin-top: 0.5rem;">
@@ -115,7 +115,7 @@
                         <select onchange="updateActivePlayers()" id="bowler-name" style="width: 100%; margin: 0.5rem 0; border-color: <%= !match.currentBowler.name ? 'var(--accent-primary)' : 'var(--border-glass)' %>;">
                             <option value="">-- Select Bowler --</option>
                             <% bowlingSquad.forEach(p => { %>
-                                <option value="<%= p.name %>" <%= match.currentBowler.name === p.name ? 'selected' : '' %>><%= p.name %></option>
+                                <option value="<%= p.id %>" data-name="<%= p.name %>" <%= (match.currentBowler.id === p.id || (!match.currentBowler.id && match.currentBowler.name === p.name)) ? 'selected' : '' %>><%= p.name %></option>
                             <% }) %>
                         </select>
                         <div style="display: flex; justify-content: space-between; margin-top: 0.5rem;">
@@ -404,10 +404,17 @@
         }
 
         async function updateActivePlayers() {
+            const strikerSelect = document.getElementById('striker-name');
+            const nonStrikerSelect = document.getElementById('nonStriker-name');
+            const bowlerSelect = document.getElementById('bowler-name');
+
             const data = {
-                striker: document.getElementById('striker-name').value,
-                nonStriker: document.getElementById('nonStriker-name').value,
-                bowler: document.getElementById('bowler-name').value
+                strikerId: strikerSelect.value,
+                striker: strikerSelect.options[strikerSelect.selectedIndex].getAttribute('data-name') || '',
+                nonStrikerId: nonStrikerSelect.value,
+                nonStriker: nonStrikerSelect.options[nonStrikerSelect.selectedIndex].getAttribute('data-name') || '',
+                bowlerId: bowlerSelect.value,
+                bowler: bowlerSelect.options[bowlerSelect.selectedIndex].getAttribute('data-name') || ''
             };
             
             try {
@@ -548,41 +555,60 @@
 
             // Update batter lists
             refreshBatterDropdowns(match);
+            refreshBowlerDropdown(match);
         }
 
         function refreshBatterDropdowns(match) {
             const innings = match.currentInnings === 1 ? match.scorecard.innings1 : match.scorecard.innings2;
-            const outPlayers = (innings.batting || []).filter(p => p.isOut).map(p => p.name);
-            const activeStriker = match.currentBatsmen.striker.name;
-            const activeNonStriker = match.currentBatsmen.nonStriker.name;
+            const outPlayerIds = (innings.batting || []).filter(p => p.isOut).map(p => p.id || p.name);
+            const activeStrikerId = match.currentBatsmen.striker.id || match.currentBatsmen.striker.name;
+            const activeNonStrikerId = match.currentBatsmen.nonStriker.id || match.currentBatsmen.nonStriker.name;
 
             const strikerSelect = document.getElementById('striker-name');
             const nonStrikerSelect = document.getElementById('nonStriker-name');
 
-            // Helper to update a select
-            const updateSelect = (select, otherActiveName) => {
+            const updateSelect = (select, otherActiveId) => {
                 const currentVal = select.value;
                 select.innerHTML = '<option value="">-- Select Player --</option>';
                 battingSquad.forEach(p => {
-                    const isOut = outPlayers.includes(p.name);
-                    const isAtOtherEnd = p.name === otherActiveName && p.name !== '';
+                    const isOut = outPlayerIds.includes(p.id) || outPlayerIds.includes(p.name);
+                    const isAtOtherEnd = (p.id === otherActiveId || p.name === otherActiveId) && otherActiveId !== '';
                     
                     if (!isOut && !isAtOtherEnd) {
                         const opt = document.createElement('option');
-                        opt.value = p.name;
+                        opt.value = p.id;
+                        opt.setAttribute('data-name', p.name);
                         opt.innerText = p.name;
-                        if (p.name === currentVal) opt.selected = true;
+                        if (p.id === currentVal) opt.selected = true;
                         select.appendChild(opt);
                     }
                 });
             };
 
-            updateSelect(strikerSelect, activeNonStriker);
-            updateSelect(nonStrikerSelect, activeStriker);
+            updateSelect(strikerSelect, activeNonStrikerId);
+            updateSelect(nonStrikerSelect, activeStrikerId);
             
             // Re-sync values
-            strikerSelect.value = activeStriker || "";
-            nonStrikerSelect.value = activeNonStriker || "";
+            strikerSelect.value = match.currentBatsmen.striker.id || match.currentBatsmen.striker.name || "";
+            nonStrikerSelect.value = match.currentBatsmen.nonStriker.id || match.currentBatsmen.nonStriker.name || "";
+        }
+
+        function refreshBowlerDropdown(match) {
+            const bowlerSelect = document.getElementById('bowler-name');
+            const currentVal = bowlerSelect.value;
+            const activeBowlerId = match.currentBowler.id || match.currentBowler.name;
+
+            bowlerSelect.innerHTML = '<option value="">-- Select Bowler --</option>';
+            bowlingSquad.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.setAttribute('data-name', p.name);
+                opt.innerText = p.name;
+                if (p.id === currentVal) opt.selected = true;
+                bowlerSelect.appendChild(opt);
+            });
+
+            bowlerSelect.value = activeBowlerId || "";
         }
 
         // Initialize lists on load

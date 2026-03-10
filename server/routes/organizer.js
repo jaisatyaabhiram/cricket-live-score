@@ -343,18 +343,30 @@ router.post('/match/:id/set-toss', requireOrganizer, async (req, res) => {
 // Set Active Players
 router.post('/match/:id/set-players', requireOrganizer, async (req, res) => {
     try {
-        const { striker, nonStriker, bowler } = req.body;
+        const { striker, strikerId, nonStriker, nonStrikerId, bowler, bowlerId } = req.body;
         const match = await Match.findById(req.params.id);
         if (!match) return res.status(404).json({ error: 'Match not found' });
 
-        if (striker && match.currentBatsmen.striker.name !== striker) {
-            match.currentBatsmen.striker = { name: striker, runs: 0, balls: 0, fours: 0, sixes: 0, isOut: false };
+        // Update Striker
+        if (strikerId && match.currentBatsmen.striker.id !== strikerId) {
+            match.currentBatsmen.striker = { id: strikerId, name: striker, runs: 0, balls: 0, fours: 0, sixes: 0, isOut: false };
+        } else if (striker && !strikerId && match.currentBatsmen.striker.name !== striker) {
+            // Fallback for manual name entry if no ID
+            match.currentBatsmen.striker = { id: '', name: striker, runs: 0, balls: 0, fours: 0, sixes: 0, isOut: false };
         }
-        if (nonStriker && match.currentBatsmen.nonStriker.name !== nonStriker) {
-            match.currentBatsmen.nonStriker = { name: nonStriker, runs: 0, balls: 0, fours: 0, sixes: 0, isOut: false };
+
+        // Update Non-Striker
+        if (nonStrikerId && match.currentBatsmen.nonStriker.id !== nonStrikerId) {
+            match.currentBatsmen.nonStriker = { id: nonStrikerId, name: nonStriker, runs: 0, balls: 0, fours: 0, sixes: 0, isOut: false };
+        } else if (nonStriker && !nonStrikerId && match.currentBatsmen.nonStriker.name !== nonStriker) {
+            match.currentBatsmen.nonStriker = { id: '', name: nonStriker, runs: 0, balls: 0, fours: 0, sixes: 0, isOut: false };
         }
-        if (bowler && match.currentBowler.name !== bowler) {
-            match.currentBowler = { name: bowler, overs: 0, runs: 0, wickets: 0 };
+
+        // Update Bowler
+        if (bowlerId && match.currentBowler.id !== bowlerId) {
+            match.currentBowler = { id: bowlerId, name: bowler, overs: 0, runs: 0, wickets: 0 };
+        } else if (bowler && !bowlerId && match.currentBowler.name !== bowler) {
+            match.currentBowler = { id: '', name: bowler, overs: 0, runs: 0, wickets: 0 };
         }
         
         await match.save();

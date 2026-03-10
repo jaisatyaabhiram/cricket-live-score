@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= player.name %> - Player Profile</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <%- include('../partials/header') %>
+
+    <main class="container">
+        <!-- Player Header -->
+        <div class="glass-panel" style="padding: 2.5rem; margin-bottom: 2rem; display: flex; align-items: center; gap: 2rem; border-left: 4px solid var(--accent-primary);">
+            <div style="width: 100px; height: 100px; background: var(--bg-secondary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 3rem; border: 2px solid var(--border-glass);">
+                👤
+            </div>
+            <div>
+                <h1 style="margin: 0; font-size: 2.5rem;"><%= player.name %></h1>
+                <p style="color: var(--text-secondary); margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <span class="badge badge-player">Player</span> • <%= player.email %>
+                </p>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <!-- Batting Stats -->
+            <div class="glass-panel stat-box" style="border-top: 3px solid var(--accent-primary);">
+                <h3>🏏 Batting Career</h3>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1.5rem;">
+                    <div class="stat-item">
+                        <div style="color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">Innings</div>
+                        <div style="font-size: 1.5rem; font-weight: 700;"><%= stats.batting.innings %></div>
+                    </div>
+                    <div class="stat-item">
+                        <div style="color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">Runs</div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--accent-primary);"><%= stats.batting.runs %></div>
+                    </div>
+                    <div class="stat-item">
+                        <div style="color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">Avg</div>
+                        <div style="font-size: 1.5rem; font-weight: 700;"><%= stats.batting.avg %></div>
+                    </div>
+                    <div class="stat-item">
+                        <div style="color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">SR</div>
+                        <div style="font-size: 1.5rem; font-weight: 700;"><%= stats.batting.sr %></div>
+                    </div>
+                    <div class="stat-item">
+                        <div style="color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">Highest</div>
+                        <div style="font-size: 1.5rem; font-weight: 700;"><%= stats.batting.highest %></div>
+                    </div>
+                    <div class="stat-item">
+                        <div style="color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">4s/6s</div>
+                        <div style="font-size: 1.1rem; font-weight: 700;"><%= stats.batting.fours %> / <%= stats.batting.sixes %></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bowling Stats -->
+            <div class="glass-panel stat-box" style="border-top: 3px solid var(--accent-secondary);">
+                <h3>🔴 Bowling Career</h3>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1.5rem;">
+                    <div class="stat-item">
+                        <div style="color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">Innings</div>
+                        <div style="font-size: 1.5rem; font-weight: 700;"><%= stats.bowling.innings %></div>
+                    </div>
+                    <div class="stat-item">
+                        <div style="color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">Wickets</div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--accent-secondary);"><%= stats.bowling.wickets %></div>
+                    </div>
+                    <div class="stat-item">
+                        <div style="color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">Overs</div>
+                        <div style="font-size: 1.5rem; font-weight: 700;"><%= stats.bowling.oversStr %></div>
+                    </div>
+                    <div class="stat-item">
+                        <div style="color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">Econ</div>
+                        <div style="font-size: 1.5rem; font-weight: 700;"><%= stats.bowling.ec %></div>
+                    </div>
+                    <div class="stat-item">
+                        <div style="color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">Runs</div>
+                        <div style="font-size: 1.5rem; font-weight: 700;"><%= stats.bowling.runs %></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Performances -->
+        <div class="glass-panel" style="margin-top: 2rem; padding: 2rem;">
+            <h3 style="margin-bottom: 1.5rem;">📉 Match-by-Match Performances</h3>
+            <% if (stats.performances.length === 0) { %>
+                <p style="color: var(--text-muted); text-align: center; padding: 2rem;">No match data available yet.</p>
+            <% } else { %>
+                <div style="overflow-x: auto;">
+                    <table class="scorecard-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 25%;">Match</th>
+                                <th>Batting</th>
+                                <th>Bowling</th>
+                                <th style="width: 15%;">Date</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% stats.performances.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(perf => { %>
+                                <tr>
+                                    <td>
+                                        <div style="font-weight: 600;"><%= perf.teams %></div>
+                                    </td>
+                                    <td>
+                                        <% if (perf.batting) { %>
+                                            <span style="color: var(--accent-primary); font-weight: 700;"><%= perf.batting.runs %></span> 
+                                            <span style="font-size: 0.85rem; color: var(--text-secondary);">(<%= perf.batting.balls %>)</span>
+                                            <%= perf.batting.isOut ? '' : '*' %>
+                                        <% } else { %>
+                                            <span style="color: var(--text-muted);">-</span>
+                                        <% } %>
+                                    </td>
+                                    <td>
+                                        <% if (perf.bowling) { %>
+                                            <%= perf.bowling.wickets %>-<%= perf.bowling.runs %> 
+                                            <span style="font-size: 0.85rem; color: var(--text-secondary);">(<%= perf.bowling.overs %> ov)</span>
+                                        <% } else { %>
+                                            <span style="color: var(--text-muted);">-</span>
+                                        <% } %>
+                                    </td>
+                                    <td style="font-size: 0.85rem; color: var(--text-muted);">
+                                        <%= new Date(perf.date).toLocaleDateString() %>
+                                    </td>
+                                    <td>
+                                        <a href="/match/<%= perf.matchId %>" class="btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; border-radius: var(--radius-sm);">View Match</a>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                </div>
+            <% } %>
+        </div>
+    </main>
+
+    <%- include('../partials/footer') %>
+</body>
+</html>

@@ -95,7 +95,9 @@
                                 <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
                                     <% if (team.squadDetails && team.squadDetails.length > 0) { %>
                                         <% team.squadDetails.forEach(p => { %>
-                                            <span style="font-size: 0.75rem; background: rgba(255,255,255,0.05); padding: 0.2rem 0.5rem; border-radius: 4px;"><%= p.name %></span>
+                                            <a href="/player/profile/<%= p.id %>" style="text-decoration: none;">
+                                                <span style="font-size: 0.75rem; background: rgba(255,255,255,0.05); padding: 0.2rem 0.5rem; border-radius: 4px; color: var(--text-primary); cursor: pointer; border: 1px solid transparent; transition: 0.2s;" onmouseover="this.style.borderColor='var(--accent-primary)';" onmouseout="this.style.borderColor='transparent';"><%= p.name %></span>
+                                            </a>
                                         <% }); %>
                                     <% } else { %>
                                         <span style="font-size: 0.75rem; color: var(--text-muted);">No squad announced.</span>

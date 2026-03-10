@@ -184,7 +184,9 @@
                                 return `
                                 <tr>
                                     <td>
-                                        <div style="font-weight: 600;">${p.name}</div>
+                                        <div style="font-weight: 600;">
+                                            ${p.id ? `<a href="/player/profile/${p.id}" style="color: inherit; text-decoration: none; border-bottom: 1px dashed var(--accent-primary);">${p.name}</a>` : p.name}
+                                        </div>
                                         <div style="font-size: 0.75rem; color: var(--text-muted);">${dismissalStr}</div>
                                     </td>
                                     <td style="text-align: right; font-weight: 700;">${p.runs}</td>
@@ -212,7 +214,7 @@
                         <tbody>
                             ${bowling.map(p => `
                                 <tr>
-                                    <td>${p.name}</td>
+                                    <td>${p.id ? `<a href="/player/profile/${p.id}" style="color: inherit; text-decoration: none; border-bottom: 1px dashed var(--accent-secondary);">${p.name}</a>` : p.name}</td>
                                     <td style="text-align: right; font-weight: 600;">${p.overs}</td>
                                     <td style="text-align: right;">${p.maidens || 0}</td>
                                     <td style="text-align: right; color: var(--danger);">${p.runs}</td>

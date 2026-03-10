@@ -19,10 +19,10 @@ class Match {
     };
 
     this.currentBatsmen = data.currentBatsmen || {
-      striker: { name: '', runs: 0, balls: 0, fours: 0, sixes: 0, isOut: false },
-      nonStriker: { name: '', runs: 0, balls: 0, fours: 0, sixes: 0, isOut: false }
+      striker: { id: '', name: '', runs: 0, balls: 0, fours: 0, sixes: 0, isOut: false },
+      nonStriker: { id: '', name: '', runs: 0, balls: 0, fours: 0, sixes: 0, isOut: false }
     };
-    this.currentBowler = data.currentBowler || { name: '', overs: 0, runs: 0, wickets: 0 };
+    this.currentBowler = data.currentBowler || { id: '', name: '', overs: 0, runs: 0, wickets: 0 };
     this.recentBalls = data.recentBalls || [];
     this.matchStatus = data.matchStatus || 'upcoming';
     this.tossWinner = data.tossWinner || '';
@@ -32,6 +32,7 @@ class Match {
     this.matchResult = data.matchResult || '';
     this.venue = data.venue || '';
     this.matchDate = data.matchDate || new Date().toISOString();
+    this.playerIds = data.playerIds || []; // For efficient profile lookups
     this.createdAt = data.createdAt || new Date().toISOString();
     this.updatedAt = new Date().toISOString();
   }
@@ -159,6 +160,7 @@ class Match {
               // NEW: Update scorecard IMMEDIATELY before clearing the name
               this.updateScorecardBatting(target);
               target.name = ''; // Now clear the slot for next selection
+              target.id = '';
           }
       }
       
@@ -234,15 +236,22 @@ class Match {
           const target = firstInningsScore.runs + 1;
           this.currentInnings = 2;
           this.currentBatsmen = {
-            striker: { name: '', runs: 0, balls: 0, fours: 0, sixes: 0, isOut: false },
-            nonStriker: { name: '', runs: 0, balls: 0, fours: 0, sixes: 0, isOut: false }
+            striker: { id: '', name: '', runs: 0, balls: 0, fours: 0, sixes: 0, isOut: false },
+            nonStriker: { id: '', name: '', runs: 0, balls: 0, fours: 0, sixes: 0, isOut: false }
           };
-          this.currentBowler = { name: '', overs: 0, runs: 0, wickets: 0 };
+          this.currentBowler = { id: '', name: '', overs: 0, runs: 0, wickets: 0 };
           this.matchResult = `Target: ${target} runs`;
           // Do NOT clear recentBalls here — preserve the last balls for undo/display
           // The UI will reload on innings change automatically
         }
       }
+
+      // 8. Update playerIds (for efficient profile queries)
+      const ids = new Set(this.playerIds);
+      if (this.currentBatsmen.striker.id) ids.add(this.currentBatsmen.striker.id);
+      if (this.currentBatsmen.nonStriker.id) ids.add(this.currentBatsmen.nonStriker.id);
+      if (this.currentBowler.id) ids.add(this.currentBowler.id);
+      this.playerIds = Array.from(ids);
 
       await this.save();
       return this;
@@ -308,10 +317,19 @@ class Match {
 
       // Batting — apply striker/nonStriker snapshots
       const applyBatterSnapshot = (snap) => {
-        if (!snap || !snap.name) return;
+        if (!snap || (!snap.name && !snap.id)) return;
         const list = savedInnings.batting;
-        const searchTerm = snap.name.toLowerCase().trim();
-        let existing = list.find(p => p.name.toLowerCase().trim() === searchTerm);
+        
+        // Prioritize ID match, then fallback to name match if no ID
+        let existing = null;
+        if (snap.id) {
+            existing = list.find(p => p.id === snap.id);
+        }
+        if (!existing && snap.name) {
+            const searchTerm = snap.name.toLowerCase().trim();
+            existing = list.find(p => p.name && p.name.toLowerCase().trim() === searchTerm && !p.id);
+        }
+
         if (existing) {
           Object.assign(existing, snap);
         } else {
@@ -322,10 +340,18 @@ class Match {
       applyBatterSnapshot(ball.nonStriker);
 
       // Bowling — apply bowler snapshot
-      if (ball.bowler && ball.bowler.name) {
+      if (ball.bowler && (ball.bowler.name || ball.bowler.id)) {
         const bowlingList = savedInnings.bowling;
-        const searchTerm = ball.bowler.name.toLowerCase().trim();
-        let existing = bowlingList.find(b => b.name.toLowerCase().trim() === searchTerm);
+        
+        let existing = null;
+        if (ball.bowler.id) {
+            existing = bowlingList.find(b => b.id === ball.bowler.id);
+        }
+        if (!existing && ball.bowler.name) {
+            const searchTerm = ball.bowler.name.toLowerCase().trim();
+            existing = bowlingList.find(b => b.name && b.name.toLowerCase().trim() === searchTerm && !b.id);
+        }
+
         if (existing) {
           Object.assign(existing, ball.bowler);
         } else {
@@ -359,13 +385,16 @@ class Match {
           this.matchResult = 'Match Tied';
         }
       }
-    } else {
-      this.currentInnings = 1;
-      if (firstScore.wickets >= 10 || (firstScore.overs >= this.overs && firstScore.balls === 0)) {
-        this.currentInnings = 2;
-        this.matchResult = `Target: ${firstScore.runs + 1} runs`;
-      }
     }
+
+    // Update playerIds after recalculation
+    const ids = new Set();
+    this.recentBalls.forEach(b => {
+      if (b.striker && b.striker.id) ids.add(b.striker.id);
+      if (b.nonStriker && b.nonStriker.id) ids.add(b.nonStriker.id);
+      if (b.bowler && b.bowler.id) ids.add(b.bowler.id);
+    });
+    this.playerIds = Array.from(ids);
   }
 
 
@@ -455,12 +484,19 @@ class Match {
   }
 
   updateScorecardBatting(player) {
-    if (!player || !player.name) return;
+    if (!player || (!player.name && !player.id)) return;
     const battingList = this.currentInnings === 1 ? this.scorecard.innings1.batting : this.scorecard.innings2.batting;
     
-    // Case-insensitive find
-    const searchTerm = player.name.toLowerCase().trim();
-    let existing = battingList.find(p => p.name.toLowerCase().trim() === searchTerm);
+    // Prioritize matching by ID, then fallback to name
+    let existing = null;
+    if (player.id) {
+        existing = battingList.find(p => p.id === player.id);
+    }
+    
+    if (!existing && player.name) {
+        const searchTerm = player.name.toLowerCase().trim();
+        existing = battingList.find(p => p.name && p.name.toLowerCase().trim() === searchTerm && !p.id);
+    }
 
     if (existing) {
         const wasOut = existing.isOut === true;
@@ -482,12 +518,19 @@ class Match {
   }
 
   updateScorecardBowling(bowler) {
-    if (!bowler || !bowler.name) return;
+    if (!bowler || (!bowler.name && !bowler.id)) return;
     const bowlingList = this.currentInnings === 1 ? this.scorecard.innings1.bowling : this.scorecard.innings2.bowling;
     
-    // Case-insensitive find
-    const searchTerm = bowler.name.toLowerCase().trim();
-    let existing = bowlingList.find(b => b.name.toLowerCase().trim() === searchTerm);
+    // Prioritize matching by ID, then fallback to name
+    let existing = null;
+    if (bowler.id) {
+        existing = bowlingList.find(b => b.id === bowler.id);
+    }
+
+    if (!existing && bowler.name) {
+        const searchTerm = bowler.name.toLowerCase().trim();
+        existing = bowlingList.find(b => b.name && b.name.toLowerCase().trim() === searchTerm && !b.id);
+    }
 
     if (existing) {
       Object.assign(existing, bowler);

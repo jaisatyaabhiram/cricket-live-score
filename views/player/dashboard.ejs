@@ -16,6 +16,9 @@
                 <h1>Player Dashboard</h1>
                 <p>Welcome, <%= user.name || user.email %>. Manage your tournament participation.</p>
             </div>
+            <a href="/player/profile/<%= user.uid %>" class="btn-primary" style="text-decoration: none; display: flex; align-items: center; gap: 0.5rem;">
+                📊 View Career Stats
+            </a>
         </div>
         
         <!-- Joined Tournaments -->
