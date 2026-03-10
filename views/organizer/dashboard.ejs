@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organizer Dashboard - Live Tournaments</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body class="admin-body">
+    <%- include('../partials/header') %>
+    
+    <main class="container admin-container">
+        <div class="dashboard-header">
+            <div class="header-titles">
+                <h1>Tournament Dashboard</h1>
+                <p>Manage your tournaments, draft players, and update live scores.</p>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <a href="/organizer/create-tournament" class="btn-secondary">
+                    <span class="icon">+</span> New Tournament
+                </a>
+                <a href="/organizer/create-match" class="btn-primary btn-create">
+                    <span class="icon">+</span> New Match
+                </a>
+            </div>
+        </div>
+        
+        <!-- Tournaments Section -->
+        <h2 style="margin: 2rem 0 1rem;">My Tournaments</h2>
+        <div class="matches-grid">
+            <% if (tournaments && tournaments.length > 0) { %>
+                <% tournaments.forEach(tournament => { %>
+                    <div class="admin-match-card glass-panel" style="padding: 1.5rem; display: flex; flex-direction: column; border-top: 3px solid var(--accent-secondary);">
+                        <h3 style="margin-bottom: 0.5rem; color: var(--accent-secondary);"><%= tournament.name %></h3>
+                        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;"><%= tournament.description || 'No description provided.' %></p>
+                        
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--border-glass);">
+                            <span style="font-size: 0.8rem; color: var(--text-muted);"><%= tournament.players ? tournament.players.length : 0 %> Players registered</span>
+                            <a href="/organizer/tournament/<%= tournament.id %>" class="btn-action" style="font-size: 0.8rem; padding: 0.4rem 1rem;">Manage</a>
+                        </div>
+                    </div>
+                <% }); %>
+            <% } else { %>
+                <div class="empty-state glass-panel" style="grid-column: 1/-1; padding: 2rem;">
+                    <p>No tournaments created yet. Create one to start organizing matches.</p>
+                </div>
+            <% } %>
+        </div>
+
+        <!-- Matches Section -->
+        <h2 style="margin: 2rem 0 1rem;">Recent Matches</h2>
+        <div class="matches-grid">
+            <% if (matches && matches.length > 0) { %>
+                <% matches.forEach(match => { %>
+                    <div class="admin-match-card glass-panel" style="padding: 1.5rem; display: flex; flex-direction: column;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                           <div class="match-status-badge <%= match.matchStatus === 'live' ? 'live-pulse' : '' %>" style="position: static;">
+                               <%= match.matchStatus.toUpperCase() %>
+                           </div>
+                           <span style="color: var(--text-secondary); font-size: 0.8rem;">Match ID: <%= (match.id || 'N/A').substring(0,6) %></span>
+                        </div>
+                        
+                        <div class="match-teams-display" style="padding: 1rem 0;">
+                            <div class="team-col">
+                                <div class="team-name" style="font-size: 1.1rem;"><%= match.team1 %></div>
+                                <div class="team-score" style="font-size: 1.4rem;"><%= match.team1Score.runs %>/<%= match.team1Score.wickets %></div>
+                            </div>
+                            <div class="vs-badge" style="width: 25px; height: 25px; font-size: 0.7rem;">VS</div>
+                            <div class="team-col">
+                                <div class="team-name" style="font-size: 1.1rem;"><%= match.team2 %></div>
+                                <div class="team-score" style="font-size: 1.4rem;"><%= match.team2Score.runs %>/<%= match.team2Score.wickets %></div>
+                            </div>
+                        </div>
+                        
+                        <div class="match-info-strip" style="background: none; border-top: none; padding: 0.5rem 0; margin-bottom: 1rem;">
+                            <span style="font-size: 0.85rem;">📍 <%= match.venue %></span>
+                        </div>
+                        
+                        <div class="match-actions" style="padding: 0; margin-top: auto;">
+                            <a href="/organizer/update-match/<%= match.id %>" class="btn-primary" style="width: 100%; justify-content: center; border-radius: var(--radius-sm); font-size: 0.9rem;">Update Score</a>
+                        </div>
+                    </div>
+                <% }); %>
+            <% } else { %>
+                <div class="empty-state glass-panel" style="grid-column: 1/-1;">
+                    <div class="empty-icon">🏏</div>
+                    <h3>No Matches Found</h3>
+                    <p>Get started by creating your first match.</p>
+                </div>
+            <% } %>
+        </div>
+    </main>
+    
+    <%- include('../partials/footer') %>
+</body>
+</html>

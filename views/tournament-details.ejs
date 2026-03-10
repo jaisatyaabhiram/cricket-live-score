@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= tournament.name %> - Details</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        .fixture-card { padding: 1.5rem; margin-bottom: 1rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: transform 0.2s; }
+        .fixture-card:hover { transform: translateY(-3px); border-color: var(--accent-primary); }
+        .status-pill { font-size: 0.7rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 4px; text-transform: uppercase; }
+        .status-live { background: var(--danger-glass); color: var(--danger); }
+        .status-upcoming { background: var(--accent-secondary-glass); color: var(--accent-secondary); }
+        .status-finished { background: rgba(255,255,255,0.1); color: var(--text-muted); }
+    </style>
+</head>
+<body>
+    <%- include('partials/header') %>
+    
+    <main class="container">
+        <div class="dashboard-header" style="margin-bottom: 3rem;">
+            <div class="header-titles">
+                <h1 style="font-size: 2.5rem;"><%= tournament.name %></h1>
+                <p style="font-size: 1.1rem; color: var(--text-secondary);"><%= tournament.description %></p>
+            </div>
+            <div style="text-align: right;">
+                <div style="color: var(--text-muted); font-size: 0.9rem;">Organized by</div>
+                <div style="font-weight: 600; color: var(--accent-primary);">The Community</div>
+            </div>
+        </div>
+
+        <div class="detail-layout" style="display: grid; grid-template-columns: 2fr 1fr; gap: 3rem;">
+            <div class="fixtures-section">
+                <h2 style="margin-bottom: 1.5rem;">Schedule & Results</h2>
+                
+                <% if (matches.live.length > 0) { %>
+                    <h3 style="font-size: 0.9rem; color: var(--danger); text-transform: uppercase; margin-bottom: 1rem;">🔴 Live Now</h3>
+                    <% matches.live.forEach(match => { %>
+                        <div class="fixture-card glass-panel" onclick="window.location.href='/match/<%= match.id %>'">
+                            <div>
+                                <div style="font-weight: 700; font-size: 1.1rem;"><%= match.team1 %> vs <%= match.team2 %></div>
+                                <div style="font-size: 0.85rem; color: var(--text-secondary);"><%= match.venue %> • Live</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div class="status-pill status-live">Live</div>
+                                <div style="font-weight: 800; margin-top: 0.5rem;"><%= match.team1Score.runs %>/<%= match.team1Score.wickets %> vs <%= match.team2Score.runs %>/<%= match.team2Score.wickets %></div>
+                            </div>
+                        </div>
+                    <% }); %>
+                <% } %>
+
+                <h3 style="font-size: 0.9rem; color: var(--accent-secondary); text-transform: uppercase; margin: 2rem 0 1rem;">📅 Upcoming Fixtures</h3>
+                <% if (matches.upcoming.length > 0) { %>
+                    <% matches.upcoming.forEach(match => { %>
+                        <div class="fixture-card glass-panel" onclick="window.location.href='/match/<%= match.id %>'">
+                            <div>
+                                <div style="font-weight: 700; font-size: 1.1rem;"><%= match.team1 %> vs <%= match.team2 %></div>
+                                <div style="font-size: 0.85rem; color: var(--text-secondary);"><%= match.venue %></div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div class="status-pill status-upcoming">Upcoming</div>
+                                <div style="margin-top: 0.5rem; font-size: 0.85rem;"><%= new Date(match.matchDate).toLocaleDateString() %></div>
+                            </div>
+                        </div>
+                    <% }); %>
+                <% } else { %>
+                    <p style="color: var(--text-muted); opacity: 0.5;">No upcoming fixtures scheduled.</p>
+                <% } %>
+
+                <% if (matches.finished.length > 0) { %>
+                    <h3 style="font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; margin: 2rem 0 1rem;">✅ Completed</h3>
+                    <% matches.finished.forEach(match => { %>
+                        <div class="fixture-card glass-panel" onclick="window.location.href='/match/<%= match.id %>'">
+                            <div style="flex: 2;">
+                                <div style="font-weight: 700;"><%= match.team1 %> vs <%= match.team2 %></div>
+                                <div style="color: var(--accent-primary); font-size: 0.8rem; font-weight: 600; margin-top: 0.3rem;"><%= match.matchResult %></div>
+                            </div>
+                            <div style="text-align: right; flex: 1;">
+                                <div class="status-pill status-finished">Result</div>
+                                <div style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-muted);"><%= new Date(match.matchDate).toLocaleDateString() %></div>
+                            </div>
+                        </div>
+                    <% }); %>
+                <% } %>
+            </div>
+
+            <div class="teams-section">
+                <h2 style="margin-bottom: 1.5rem;">Participating Teams</h2>
+                <div class="glass-panel" style="padding: 1.5rem;">
+                    <% if (tournament.teams && tournament.teams.length > 0) { %>
+                        <% tournament.teams.forEach(team => { %>
+                            <div style="padding: 1rem 0; border-bottom: 1px solid var(--border-glass);">
+                                <div style="font-weight: 700; color: var(--accent-primary); margin-bottom: 0.5rem;"><%= team.name %></div>
+                                <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+                                    <% if (team.squadDetails && team.squadDetails.length > 0) { %>
+                                        <% team.squadDetails.forEach(p => { %>
+                                            <span style="font-size: 0.75rem; background: rgba(255,255,255,0.05); padding: 0.2rem 0.5rem; border-radius: 4px;"><%= p.name %></span>
+                                        <% }); %>
+                                    <% } else { %>
+                                        <span style="font-size: 0.75rem; color: var(--text-muted);">No squad announced.</span>
+                                    <% } %>
+                                </div>
+                            </div>
+                        <% }); %>
+                    <% } else { %>
+                        <p style="color: var(--text-muted);">No teams participating yet.</p>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <%- include('partials/footer') %>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create New Tournament</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body class="admin-body">
+    <%- include('../partials/header') %>
+    
+    <main class="container admin-container">
+        <div class="dashboard-header">
+            <div class="header-titles">
+                <h1>Create Tournament</h1>
+                <p>Start a new tournament to organize your matches and players.</p>
+            </div>
+            <a href="/organizer/dashboard" class="btn-secondary">Back to Dashboard</a>
+        </div>
+        
+        <div class="glass-panel" style="padding: 2rem; max-width: 600px; margin: 2rem auto;">
+            <form action="/organizer/create-tournament" method="POST">
+                <div class="form-group">
+                    <label>Tournament Name</label>
+                    <input type="text" name="name" required placeholder="E.g., Premier Cricket League 2026">
+                </div>
+                
+                <div class="form-group">
+                    <label>Description / Rules</label>
+                    <textarea name="description" rows="4" placeholder="Brief description of the tournament..." style="width: 100%; padding: 0.8rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-glass); border-radius: var(--radius-sm); color: white;"></textarea>
+                </div>
+                
+                <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 1rem;">Create Tournament</button>
+            </form>
+        </div>
+    </main>
+    
+    <%- include('../partials/footer') %>
+</body>
+</html>

@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Match - Cricket Score</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+    <%- include('partials/header') %>
+    
+    <main class="container">
+        <!-- Live Match Header -->
+        <div class="match-details glass-panel" id="match-container" style="padding: 0; overflow: hidden; margin-bottom: 2rem;">
+            <div style="padding: 4rem; text-align: center;">Loading match data...</div>
+        </div>
+        
+        <!-- Match Tabs -->
+        <div class="glass-panel" style="padding: 0.5rem; margin-bottom: 2rem; display: flex; gap: 0.5rem; border-radius: var(--radius-lg);">
+            <button onclick="showSection('live')" id="tab-live" class="btn-tab active" style="flex: 1; padding: 1rem; border-radius: var(--radius-md); border: none; background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.3s; font-weight: 600;">LIVE</button>
+            <button onclick="showSection('scorecard')" id="tab-scorecard" class="btn-tab" style="flex: 1; padding: 1rem; border-radius: var(--radius-md); border: none; background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.3s; font-weight: 600;">SCORECARD</button>
+            <button onclick="showSection('info')" id="tab-info" class="btn-tab" style="flex: 1; padding: 1rem; border-radius: var(--radius-md); border: none; background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.3s; font-weight: 600;">INFO</button>
+        </div>
+
+        <!-- Live Details Section -->
+        <div id="section-live" class="match-section">
+            <div class="stats-grid">
+                <!-- Batting -->
+                <div class="stat-box glass-panel">
+                    <h3>Batters</h3>
+                    <div class="player-row" style="color: var(--text-secondary); font-size: 0.85rem; border: none; padding-bottom: 0;">
+                        <div style="flex: 2;">Batter</div>
+                        <div style="flex: 1; text-align: right;">R</div>
+                        <div style="flex: 1; text-align: right;">B</div>
+                        <div style="flex: 1; text-align: right;">4s</div>
+                        <div style="flex: 1; text-align: right;">6s</div>
+                    </div>
+                    <!-- Striker -->
+                    <div class="player-row active" id="striker-row">
+                        <div class="player-name" style="flex: 2;">
+                            <span id="striker-name">Loading...</span> 🏏
+                        </div>
+                        <div class="player-stats" id="striker-r" style="flex: 1; text-align: right;">-</div>
+                        <div id="striker-b" style="flex: 1; text-align: right;">-</div>
+                        <div id="striker-4" style="flex: 1; text-align: right; color: var(--text-secondary);">-</div>
+                        <div id="striker-6" style="flex: 1; text-align: right; color: var(--text-secondary);">-</div>
+                    </div>
+                    <!-- Non Striker -->
+                    <div class="player-row" id="non-striker-row">
+                        <div class="player-name" style="flex: 2;">
+                            <span id="non-striker-name">Loading...</span>
+                        </div>
+                        <div class="player-stats" id="nstriker-r" style="flex: 1; text-align: right;">-</div>
+                        <div id="nstriker-b" style="flex: 1; text-align: right;">-</div>
+                        <div id="nstriker-4" style="flex: 1; text-align: right; color: var(--text-secondary);">-</div>
+                        <div id="nstriker-6" style="flex: 1; text-align: right; color: var(--text-secondary);">-</div>
+                    </div>
+                </div>
+
+                <!-- Bowling -->
+                <div class="stat-box glass-panel">
+                    <h3>Bowler</h3>
+                    <div class="player-row" style="color: var(--text-secondary); font-size: 0.85rem; border: none; padding-bottom: 0;">
+                        <div style="flex: 2;">Bowler</div>
+                        <div style="flex: 1; text-align: right;">O</div>
+                        <div style="flex: 1; text-align: right;">M</div>
+                        <div style="flex: 1; text-align: right;">R</div>
+                        <div style="flex: 1; text-align: right;">W</div>
+                    </div>
+                    <div class="player-row active" id="bowler-row">
+                        <div class="player-name" style="flex: 2;">
+                            <span id="bowler-name">Loading...</span> 🔴
+                        </div>
+                        <div class="player-stats" id="bowler-o" style="flex: 1; text-align: right;">-</div>
+                        <div style="flex: 1; text-align: right;" id="bowler-m">0</div>
+                        <div id="bowler-r" style="flex: 1; text-align: right; color: var(--danger);">-</div>
+                        <div id="bowler-w" class="player-stats" style="flex: 1; text-align: right; color: var(--accent-primary);">-</div>
+                    </div>
+                    
+                    <!-- Timeline Preview -->
+                    <div style="margin-top: 1.5rem; border-top: 1px solid var(--border-glass); padding-top: 1rem;">
+                        <h4 style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.1em;">This Over</h4>
+                        <div id="recent-balls-container" class="balls-grid">
+                            <!-- balls -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scorecard Section -->
+        <div id="section-scorecard" class="match-section" style="display: none;">
+            <div id="scorecard-content" class="glass-panel" style="padding: 2rem;">
+                <h2 style="text-align: center; color: var(--text-muted); padding: 4rem;">Generating scorecard...</h2>
+            </div>
+        </div>
+
+        <!-- Info Section -->
+        <div id="section-info" class="match-section" style="display: none;">
+            <div class="glass-panel" style="padding: 2rem;">
+                <h3>Match Information</h3>
+                <div id="match-info-details" style="display: grid; grid-template-columns: 1fr 2.5fr; gap: 1rem; margin-top: 1.5rem;">
+                    <!-- match info injected here -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <%- include('partials/footer') %>
+    
+    <script>
+        const matchId = '<%= matchId %>';
+        const socket = io();
+        
+        socket.on('match-update', (match) => {
+            if (match.id === matchId) {
+                // Add pop animation class temporarily to whole body or container to feel the impact
+                updateMatchDisplay(match);
+            }
+        });
+        
+        async function loadMatch() {
+            try {
+                const response = await fetch(`/api/matches/${matchId}`);
+                const match = await response.json();
+                updateMatchDisplay(match);
+            } catch (error) {
+                console.error('Error loading match:', error);
+            }
+        }
+        
+        function showSection(sectionId) {
+            document.querySelectorAll('.match-section').forEach(s => s.style.display = 'none');
+            document.querySelectorAll('.btn-tab').forEach(t => t.classList.remove('active'));
+            
+            document.getElementById(`section-${sectionId}`).style.display = 'block';
+            document.getElementById(`tab-${sectionId}`).classList.add('active');
+        }
+
+        function buildScorecardUI(match) {
+            const container = document.getElementById('scorecard-content');
+            
+            const buildInningsScorecard = (inningsNum, batting, bowling, teamName, score) => {
+                const sr = (r, b) => b > 0 ? ((r/b)*100).toFixed(1) : '0.0';
+                const econ = (r, o) => o > 0 ? (r/o).toFixed(1) : '0.0';
+
+                return `
+                <div class="innings-section" style="margin-bottom: 3rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--accent-primary); padding-bottom: 0.5rem; margin-bottom: 1rem;">
+                        <h3 style="margin: 0;">${teamName} Inning</h3>
+                        <div style="font-size: 1.2rem; font-weight: 700;">${score.runs}/${score.wickets} (${score.overs}.${score.balls})</div>
+                    </div>
+                    
+                    <table class="scorecard-table">
+                        <thead>
+                            <tr>
+                                <th style="text-align: left;">Batter</th>
+                                <th style="text-align: right;">R</th>
+                                <th style="text-align: right;">B</th>
+                                <th style="text-align: right;">4s</th>
+                                <th style="text-align: right;">6s</th>
+                                <th style="text-align: right;">SR</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${batting.map(p => {
+                                let dismissalStr = 'not out';
+                                if (p.isOut) {
+                                    dismissalStr = 'out';
+                                    if (p.dismissal) {
+                                        const { type, fielder, bowler } = p.dismissal;
+                                        if (type === 'bowled') dismissalStr = `b ${bowler || 'Unknown'}`;
+                                        else if (type === 'caught') dismissalStr = `c ${fielder || ''} b ${bowler || 'Unknown'}`;
+                                        else if (type === 'runout') dismissalStr = `run out (${fielder || ''})`;
+                                        else if (type === 'lbw') dismissalStr = `lbw b ${bowler || 'Unknown'}`;
+                                        else if (type === 'stumped') dismissalStr = `st ${fielder || ''} b ${bowler || 'Unknown'}`;
+                                        else if (type) dismissalStr = type;
+                                    }
+                                }
+                                return `
+                                <tr>
+                                    <td>
+                                        <div style="font-weight: 600;">${p.name}</div>
+                                        <div style="font-size: 0.75rem; color: var(--text-muted);">${dismissalStr}</div>
+                                    </td>
+                                    <td style="text-align: right; font-weight: 700;">${p.runs}</td>
+                                    <td style="text-align: right; color: var(--text-secondary);">${p.balls}</td>
+                                    <td style="text-align: right; color: var(--text-secondary);">${p.fours}</td>
+                                    <td style="text-align: right; color: var(--text-secondary);">${p.sixes}</td>
+                                    <td style="text-align: right; color: var(--text-muted); font-size: 0.85rem;">${sr(p.runs, p.balls)}</td>
+                                </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+
+                    <table class="scorecard-table" style="margin-top: 2rem;">
+                        <thead>
+                            <tr>
+                                <th style="text-align: left;">Bowler</th>
+                                <th style="text-align: right;">O</th>
+                                <th style="text-align: right;">M</th>
+                                <th style="text-align: right;">R</th>
+                                <th style="text-align: right;">W</th>
+                                <th style="text-align: right;">Econ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${bowling.map(p => `
+                                <tr>
+                                    <td>${p.name}</td>
+                                    <td style="text-align: right; font-weight: 600;">${p.overs}</td>
+                                    <td style="text-align: right;">${p.maidens || 0}</td>
+                                    <td style="text-align: right; color: var(--danger);">${p.runs}</td>
+                                    <td style="text-align: right; color: var(--accent-primary); font-weight: 600;">${p.wickets}</td>
+                                    <td style="text-align: right; color: var(--text-muted);">${econ(p.runs, p.overs)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                `;
+            };
+
+            const scorecard = match.scorecard || { innings1: { batting: [], bowling: [] }, innings2: { batting: [], bowling: [] } };
+            
+            const firstInningsTeamName = match.battingFirst || match.team1;
+            const secondInningsTeamName = (firstInningsTeamName === match.team1 ? match.team2 : match.team1);
+            
+            const firstInningsScore = firstInningsTeamName === match.team1 ? match.team1Score : match.team2Score;
+            const secondInningsScore = secondInningsTeamName === match.team1 ? match.team1Score : match.team2Score;
+
+            container.innerHTML = `
+                ${buildInningsScorecard(1, scorecard.innings1.batting, scorecard.innings1.bowling, firstInningsTeamName, firstInningsScore)}
+                ${scorecard.innings2.batting.length > 0 || match.currentInnings === 2 ? buildInningsScorecard(2, scorecard.innings2.batting, scorecard.innings2.bowling, secondInningsTeamName, secondInningsScore) : ''}
+            `;
+
+            // Update Info Section
+            document.getElementById('match-info-details').innerHTML = `
+                <div style="color: var(--text-secondary);">Match</div><div>${match.team1} vs ${match.team2}</div>
+                <div style="color: var(--text-secondary);">Overs</div><div>${match.overs}</div>
+                <div style="color: var(--text-secondary);">Venue</div><div>${match.venue}</div>
+                <div style="color: var(--text-secondary);">Date</div><div>${new Date(match.matchDate).toDateString()}</div>
+                <div style="color: var(--text-secondary);">Toss</div><div>${match.tossWinner ? `${match.tossWinner} opted to ${match.tossDecision}` : 'Pending'}</div>
+            `;
+        }
+
+        function updateMatchDisplay(match) {
+            // Update big header
+            document.getElementById('match-container').innerHTML = `
+                <div class="match-header-large">
+                    ${match.matchStatus === 'live' ? '<div class="match-status-badge live live-pulse" style="top: 1rem; right: 1rem;">LIVE</div>' : ''}
+                    ${match.matchStatus === 'tie_pending' ? '<div class="match-status-badge" style="top: 1rem; right: 1rem; background: var(--warning-glass); color: var(--warning);">TIE PENDING</div>' : ''}
+                    ${match.matchStatus === 'conclusion_pending' ? '<div class="match-status-badge" style="top: 1rem; right: 1rem; background: var(--accent-secondary-glass); color: var(--accent-secondary);">RESULT PENDING</div>' : ''}
+                    <h2>${match.team1} vs ${match.team2}</h2>
+                    <p style="color: var(--accent-secondary); font-weight: 600;">${match.tossWinner ? match.tossWinner + ' elected to ' + match.tossDecision : 'Toss pending'} • ${match.venue}</p>
+                </div>
+                ${(match.matchStatus === 'completed' || match.matchStatus === 'conclusion_pending' || match.matchStatus === 'tie_pending') ? `
+                <div class="glass-panel" style="margin: 0 2rem 2rem 2rem; padding: 1.5rem; text-align: center; border-color: ${match.matchStatus === 'tie_pending' ? 'var(--warning)' : 'var(--accent-primary)'}; background: ${match.matchStatus === 'tie_pending' ? 'var(--warning-glass)' : 'var(--accent-primary-glass)'};">
+                    <h2 style="margin: 0; color: ${match.matchStatus === 'tie_pending' ? 'var(--warning)' : 'var(--accent-primary)'};">${match.matchResult || 'Match Completed'}</h2>
+                    ${match.matchStatus === 'conclusion_pending' ? '<p style="font-size: 0.8rem; margin-top: 0.5rem; color: var(--text-secondary);">(Result Pending Confirmation)</p>' : ''}
+                </div>` : ''}
+                <div class="score-board">
+                    <div class="team-score-large">
+                        <h3 style="color: var(--text-secondary); margin-bottom: 0.5rem; font-size: 1.2rem;">${match.team1}</h3>
+                        <div class="score">${match.team1Score.runs}<span style="font-size: 2.5rem; color: var(--text-muted);">/${match.team1Score.wickets}</span></div>
+                        <div class="overs" style="font-size: 1.1rem; color: var(--text-secondary); margin-top: 0.5rem;">Overs: <span style="color: var(--text-primary); font-weight: 600;">${match.team1Score.overs}.${match.team1Score.balls || 0}</span></div>
+                    </div>
+                    <div style="width: 1px; background: var(--border-glass);"></div>
+                    <div class="team-score-large">
+                        <h3 style="color: var(--text-secondary); margin-bottom: 0.5rem; font-size: 1.2rem;">${match.team2}</h3>
+                        <div class="score">${match.team2Score.runs}<span style="font-size: 2.5rem; color: var(--text-muted);">/${match.team2Score.wickets}</span></div>
+                        <div class="overs" style="font-size: 1.1rem; color: var(--text-secondary); margin-top: 0.5rem;">Overs: <span style="color: var(--text-primary); font-weight: 600;">${match.team2Score.overs}.${match.team2Score.balls || 0}</span></div>
+                    </div>
+                </div>
+            `;
+            
+            buildScorecardUI(match);
+            
+            // Update Mini Stats for Current Batters/Bowlers
+            const currentBattingTeam = match.currentInnings === 1 ? match.team1Score : match.team2Score;
+            
+            if (match.currentBatsmen && match.currentBatsmen.striker && match.currentBatsmen.striker.name) {
+                document.getElementById('striker-name').textContent = match.currentBatsmen.striker.name;
+                document.getElementById('striker-r').textContent = match.currentBatsmen.striker.runs;
+                document.getElementById('striker-b').textContent = match.currentBatsmen.striker.balls;
+                document.getElementById('striker-4').textContent = match.currentBatsmen.striker.fours;
+                document.getElementById('striker-6').textContent = match.currentBatsmen.striker.sixes;
+                document.getElementById('striker-row').style.opacity = '1';
+            } else {
+                document.getElementById('striker-row').style.opacity = '0.3';
+            }
+
+            if (match.currentBatsmen && match.currentBatsmen.nonStriker && match.currentBatsmen.nonStriker.name) {
+                document.getElementById('non-striker-name').textContent = match.currentBatsmen.nonStriker.name;
+                document.getElementById('nstriker-r').textContent = match.currentBatsmen.nonStriker.runs;
+                document.getElementById('nstriker-b').textContent = match.currentBatsmen.nonStriker.balls;
+                document.getElementById('nstriker-4').textContent = match.currentBatsmen.nonStriker.fours;
+                document.getElementById('nstriker-6').textContent = match.currentBatsmen.nonStriker.sixes;
+                document.getElementById('non-striker-row').style.opacity = '1';
+            } else {
+                document.getElementById('non-striker-row').style.opacity = '0.3';
+            }
+
+            if (match.currentBowler && match.currentBowler.name) {
+                document.getElementById('bowler-name').textContent = match.currentBowler.name;
+                document.getElementById('bowler-o').textContent = match.currentBowler.overs;
+                document.getElementById('bowler-r').textContent = match.currentBowler.runs;
+                document.getElementById('bowler-w').textContent = match.currentBowler.wickets;
+                document.getElementById('bowler-row').style.opacity = '1';
+            } else {
+                document.getElementById('bowler-row').style.opacity = '0.3';
+            }
+            
+            // Recent balls — only show balls from the current innings
+            const recentBallsContainer = document.getElementById('recent-balls-container');
+            const currentInningsBalls = (match.recentBalls || []).filter(ball => 
+                !ball.inningsNum || ball.inningsNum === match.currentInnings
+            );
+            if(currentInningsBalls.length > 0) {
+                recentBallsContainer.innerHTML = currentInningsBalls.map((ball, i) => {
+                    let text = ball.runs;
+                    let extraClass = '';
+                    
+                    if (ball.wicket) { 
+                        text = 'W'; extraClass = 'wicket'; 
+                    } else if (ball.runs === 4) { 
+                        extraClass = 'boundary-4'; 
+                    } else if (ball.runs === 6) { 
+                        extraClass = 'boundary-6'; 
+                    }
+                    
+                    if (ball.extras) { 
+                        text += ball.extrasType ? ball.extrasType[0].toUpperCase() : 'E'; 
+                        extraClass += ' extra'; 
+                    }
+                    
+                    return `<div class="ball ${extraClass}">${text}</div>`;
+                }).join('');
+            } else {
+                recentBallsContainer.innerHTML = '<span style="color: var(--text-muted); font-size: 0.9rem;">No balls bowled yet in this innings.</span>';
+            }
+        }
+        
+        // Notify socket we joined
+        socket.emit('join-match', matchId);
+        
+        document.addEventListener('DOMContentLoaded', loadMatch);
+    </script>
+</body>
+</html>

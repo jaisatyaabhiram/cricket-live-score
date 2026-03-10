@@ -1,0 +1,43 @@
+type Tournament @table {
+  name: String!
+  description: String
+  startDate: Date!
+  endDate: Date!
+  organizerId: UUID!
+  location: String
+}
+
+type Team @table {
+  name: String!
+  tournament: Tournament!
+  captainId: UUID
+}
+
+type Player @table {
+  name: String!
+  team: Team!
+  age: Int
+  battingStyle: String
+  bowlingStyle: String
+}
+
+type Match @table {
+  tournament: Tournament!
+  homeTeam: Team!
+  awayTeam: Team!
+  matchDate: Timestamp!
+  status: String!
+  winnerTeamId: UUID
+  manOfTheMatchPlayerId: UUID
+}
+
+type ScorecardEntry @table {
+  match: Match!
+  player: Player!
+  runsScored: Int!
+  wicketsTaken: Int!
+  oversBowled: Float!
+  catches: Int
+  stumpings: Int
+  runOuts: Int
+}

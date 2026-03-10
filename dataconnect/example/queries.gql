@@ -1,0 +1,52 @@
+query ListAllTournaments @auth(level: PUBLIC, insecureReason: "This operation is safe to expose to the public as it only lists tournament details.") {
+  tournaments {
+    id
+    name
+    description
+    startDate
+    endDate
+    location
+  }
+}
+
+query GetTeamDetails($teamId: UUID!) @auth(level: PUBLIC, insecureReason: "This operation is safe to expose to the public as it only fetches team details.") {
+  team(id: $teamId) {
+    id
+    name
+    tournament {
+      name
+    }
+    captainId
+    players_on_team {
+      id
+      name
+      battingStyle
+      bowlingStyle
+    }
+  }
+}
+
+mutation RecordScorecardEntry($matchId: UUID!, $playerId: UUID!, $runsScored: Int!, $wicketsTaken: Int!, $oversBowled: Float!) @auth(level: USER, insecureReason: "This operation allows any logged-in user to record a scorecard entry. Implement server-side validation or more granular authorization if needed.") {
+  scorecardEntry_insert(data: {
+    matchId: $matchId,
+    playerId: $playerId,
+    runsScored: $runsScored,
+    wicketsTaken: $wicketsTaken,
+    oversBowled: $oversBowled
+  }) {
+    id
+  }
+}
+
+query GetPlayerProfile($playerId: UUID!) @auth(level: PUBLIC, insecureReason: "This operation is safe to expose to the public as it only fetches player profile information.") {
+  player(id: $playerId) {
+    id
+    name
+    age
+    battingStyle
+    bowlingStyle
+    team {
+      name
+    }
+  }
+}

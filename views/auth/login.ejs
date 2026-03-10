@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    
+    <style>
+        .auth-container { max-width: 450px; margin: 4rem auto; }
+        .tab-panel { display: flex; border-bottom: 2px solid var(--border-glass); margin-bottom: 2rem; }
+        .tab { flex: 1; text-align: center; padding: 1rem; cursor: pointer; color: var(--text-secondary); font-family: var(--font-heading); font-weight: 600; transition: 0.3s; }
+        .tab.active { color: var(--accent-primary); border-bottom: 2px solid var(--accent-primary); margin-bottom: -2px; }
+        .form-section { display: none; }
+        .form-section.active { display: block; }
+        .role-selector { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
+        .role-option { flex: 1; background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); padding: 1rem; border-radius: var(--radius-sm); text-align: center; cursor: pointer; transition: 0.2s; }
+        .role-option.selected { border-color: var(--accent-secondary); box-shadow: 0 0 15px rgba(0, 204, 255, 0.2); background: rgba(0, 204, 255, 0.05); }
+    </style>
+</head>
+<body>
+    <%- include('../partials/header') %>
+    
+    <main class="container">
+        <div class="auth-container glass-panel" style="padding: 2.5rem;">
+            
+            <div class="tab-panel" id="auth-tabs">
+                <div class="tab active" data-target="login">Login</div>
+                <div class="tab" data-target="register">Register</div>
+            </div>
+
+            <% if (typeof error !== 'undefined' && error) { %>
+                <div class="error-banner glass-panel" style="background: var(--danger-glass); border-color: var(--danger); color: white; padding: 1rem; margin-bottom: 1.5rem; border-radius: var(--radius-sm);"><%= error %></div>
+            <% } %>
+
+            <!-- Login Form -->
+            <div id="login" class="form-section active">
+                <h2 style="margin-bottom: 1rem; text-align: center;">Welcome Back</h2>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label>Email Adddress</label>
+                        <input type="email" id="login-email" required placeholder="you@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="login-password" required>
+                    </div>
+                    <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 1rem;" id="login-btn">Secure Login</button>
+                </form>
+            </div>
+
+            <!-- Register Form -->
+            <div id="register" class="form-section">
+                <h2 style="margin-bottom: 1rem; text-align: center;">Create Account</h2>
+                
+                <label style="color: var(--text-secondary); margin-bottom: 0.5rem; display: block;">Select Role</label>
+                <div class="role-selector" id="role-selector">
+                    <div class="role-option selected" data-role="player">
+                        <div style="font-size: 2rem;">🏏</div>
+                        <div style="font-weight: 600;">Player</div>
+                    </div>
+                    <div class="role-option" data-role="organizer">
+                        <div style="font-size: 2rem;">📋</div>
+                        <div style="font-weight: 600;">Organizer</div>
+                    </div>
+                </div>
+
+                <form id="register-form">
+                    <input type="hidden" id="register-role" value="player">
+                    <div class="form-group">
+                        <label>Full Name or Team Name</label>
+                        <input type="text" id="register-name" required placeholder="John Doe">
+                    </div>
+                    <div class="form-group">
+                        <label>Email Address</label>
+                        <input type="email" id="register-email" required placeholder="you@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="register-password" required minlength="6">
+                    </div>
+                    <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 1rem;" id="register-btn">Create Account</button>
+                </form>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // Init Firebase
+        const config = <%- JSON.stringify(locals.firebaseConfig || {}) %>;
+        if(config.apiKey && !firebase.apps.length) firebase.initializeApp(config);
+        const auth = firebase.auth();
+
+        // UI Toggles
+        document.querySelectorAll('.tab').forEach(t => {
+            t.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+                document.querySelectorAll('.form-section').forEach(x => x.classList.remove('active'));
+                t.classList.add('active');
+                document.getElementById(t.dataset.target).classList.add('active');
+            });
+        });
+
+        document.querySelectorAll('.role-option').forEach(r => {
+            r.addEventListener('click', () => {
+                document.querySelectorAll('.role-option').forEach(x => x.classList.remove('selected'));
+                r.classList.add('selected');
+                document.getElementById('register-role').value = r.dataset.role;
+            });
+        });
+
+        // Form Handlers
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('login-btn');
+            btn.textContent = 'Authenticating...';
+            btn.disabled = true;
+
+            try {
+                const cred = await auth.signInWithEmailAndPassword(
+                    document.getElementById('login-email').value,
+                    document.getElementById('login-password').value
+                );
+                
+                const token = await cred.user.getIdToken();
+                const res = await fetch('/auth/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idToken: token })
+                });
+
+                const data = await res.json();
+                if(data.success) {
+                    window.location.href = data.role === 'organizer' ? '/organizer/dashboard' : '/'; // Player dashboard route could be added later
+                } else {
+                    alert('Login failed. Check server logs.');
+                }
+            } catch (err) {
+                alert(err.message);
+            } finally {
+                btn.textContent = 'Secure Login';
+                btn.disabled = false;
+            }
+        });
+
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('register-btn');
+            btn.textContent = 'Creating...';
+            btn.disabled = true;
+
+            try {
+                const cred = await auth.createUserWithEmailAndPassword(
+                    document.getElementById('register-email').value,
+                    document.getElementById('register-password').value
+                );
+                
+                const token = await cred.user.getIdToken();
+                const role = document.getElementById('register-role').value;
+                const name = document.getElementById('register-name').value;
+
+                const res = await fetch('/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idToken: token, role, name })
+                });
+
+                const data = await res.json();
+                if(data.success) {
+                    window.location.href = role === 'organizer' ? '/organizer/dashboard' : '/';
+                }
+            } catch (err) {
+                alert(err.message);
+            } finally {
+                btn.textContent = 'Create Account';
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

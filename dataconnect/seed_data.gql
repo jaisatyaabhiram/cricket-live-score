@@ -1,0 +1,51 @@
+mutation SeedData @transaction @auth(level: USER, insecureReason: "Seed data mutations are for development purposes and not exposed to end users.") {
+  tournament_insertMany(
+    data: [
+      {
+        id: "a1a1a1a1-a1a1-4a1a-8a1a-1a1a1a1a1a1a",
+        name: "Firebase Cricket League 2024",
+        description: "Annual cricket league sponsored by Firebase.",
+        startDate: "2024-03-01",
+        endDate: "2024-03-31",
+        organizerId: "b2b2b2b2-b2b2-4b2b-8b2b-2b2b2b2b2b2b",
+        location: "Mumbai, India"
+      }
+    ]
+  )
+  team_insertMany(
+    data: [
+      {
+        id: "c3c3c3c3-c3c3-4c3c-8c3c-3c3c3c3c3c3c",
+        name: "Firebase Fighters",
+        tournamentId: "a1a1a1a1-a1a1-4a1a-8a1a-1a1a1a1a1a1a",
+        captainId: "d4d4d4d4-d4d4-4d4d-8d4d-4d4d4d4d4d4d"
+      },
+      {
+        id: "e5e5e5e5-e5e5-4e5e-8e5e-5e5e5e5e5e5e",
+        name: "Firestore Falcons",
+        tournamentId: "a1a1a1a1-a1a1-4a1a-8a1a-1a1a1a1a1a1a",
+        captainId: "f6f6f6f6-f6f6-4f6f-8f6f-6f6f6f6f6f6f"
+      }
+    ]
+  )
+  player_insertMany(
+    data: [
+      {
+        id: "d4d4d4d4-d4d4-4d4d-8d4d-4d4d4d4d4d4d",
+        name: "Virat Kohli",
+        teamId: "c3c3c3c3-c3c3-4c3c-8c3c-3c3c3c3c3c3c",
+        age: 35,
+        battingStyle: "Right-handed",
+        bowlingStyle: "Right-arm medium"
+      },
+      {
+        id: "f6f6f6f6-f6f6-4f6f-8f6f-6f6f6f6f6f6f",
+        name: "Rohit Sharma",
+        teamId: "e5e5e5e5-e5e5-4e5e-8e5e-5e5e5e5e5e5e",
+        age: 36,
+        battingStyle: "Right-handed",
+        bowlingStyle: "Right-arm off-break"
+      }
+    ]
+  )
+}

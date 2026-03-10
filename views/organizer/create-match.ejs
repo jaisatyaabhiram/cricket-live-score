@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create New Tournament Match</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body class="admin-body">
+    <%- include('../partials/header') %>
+    
+    <main class="container admin-container">
+        <div class="dashboard-header">
+            <div class="header-titles">
+                <h1>Create Match</h1>
+                <p>Setup a new match for your tournament.</p>
+            </div>
+            <a href="/organizer/dashboard" class="btn-secondary">Back to Dashboard</a>
+        </div>
+        
+        <div class="glass-panel" style="padding: 2rem; max-width: 600px; margin: 2rem auto;">
+            <form action="/organizer/create-match" method="POST">
+                <div class="form-group">
+                    <label>Select Tournament</label>
+                    <select name="tournamentId" id="tournamentSelect" onchange="updateTeams()">
+                        <option value="">None (Single Match)</option>
+                        <% tournaments.forEach(t => { %>
+                            <option value="<%= t.id %>" <%= t.id === selectedTournamentId ? 'selected' : '' %> data-teams='<%- JSON.stringify(t.teams || []) %>'><%= t.name %></option>
+                        <% }); %>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Team 1 Name</label>
+                    <div id="team1-container">
+                        <input type="text" name="team1" id="team1_input" required placeholder="E.g., Mumbai Indians">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Team 2 Name</label>
+                    <div id="team2-container">
+                        <input type="text" name="team2" id="team2_input" required placeholder="E.g., Chennai Super Kings">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Total Overs</label>
+                    <input type="number" name="overs" required value="20" min="1">
+                </div>
+                
+                <div class="form-group">
+                    <label>Venue / Ground</label>
+                    <input type="text" name="venue" required placeholder="E.g., Wankhede Stadium">
+                </div>
+                
+                <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 1rem;">Create Match</button>
+            </form>
+        </div>
+    </main>
+    
+    <script>
+        function updateTeams() {
+            const select = document.getElementById('tournamentSelect');
+            const selectedOption = select.options[select.selectedIndex];
+            const teamsJson = selectedOption.getAttribute('data-teams');
+            
+            const team1Container = document.getElementById('team1-container');
+            const team2Container = document.getElementById('team2-container');
+            
+            if (teamsJson && teamsJson !== '[]') {
+                const teams = JSON.parse(teamsJson);
+                const optionsHtml1 = teams.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+                const optionsHtml2 = teams.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+                
+                team1Container.innerHTML = `<select name="team1" required>${optionsHtml1}</select>`;
+                team2Container.innerHTML = `<select name="team2" required>${optionsHtml2}</select>`;
+            } else {
+                team1Container.innerHTML = `<input type="text" name="team1" required placeholder="E.g., Mumbai Indians">`;
+                team2Container.innerHTML = `<input type="text" name="team2" required placeholder="E.g., Chennai Super Kings">`;
+            }
+        }
+        
+        // Run once on load to handle pre-selected tournament
+        window.onload = updateTeams;
+    </script>
+    <%- include('../partials/footer') %>
+</body>
+</html>

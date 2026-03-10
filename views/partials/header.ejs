@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= typeof title !== 'undefined' ? title : 'Cricket Live Score' %></title>
+    <link rel="stylesheet" href="/css/style.css">
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <!-- Socket.io -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="logo">
+                <a href="/">🏏 Cricket Live Score</a>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="/">Home</a></li>
+                    <li><a href="/matches">Matches</a></li>
+                    <% if (user) { %>
+                        <% if (user.role === 'organizer') { %>
+                            <li><a href="/organizer/dashboard">Dashboard</a></li>
+                        <% } else { %>
+                            <li><a href="/player/dashboard">Dashboard</a></li>
+                        <% } %>
+                        <li><a href="#" id="logout-btn">Logout</a></li>
+                    <% } else { %>
+                        <li><a href="/auth/login">Login / Register</a></li>
+                    <% } %>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <script>
+    // Initialize Firebase right after loading the SDK
+    document.addEventListener('DOMContentLoaded', function() {
+        try {
+            // Your Firebase config from server
+            const configStr = '<%- JSON.stringify(locals.firebaseConfig || {}) %>';
+            const firebaseConfig = configStr ? JSON.parse(configStr) : {};
+            
+            if (firebaseConfig && firebaseConfig.apiKey) {
+                // Initialize Firebase
+                firebase.initializeApp(firebaseConfig);
+                console.log('✅ Firebase initialized successfully');
+            } else {
+                console.warn('⚠️ Firebase config not available');
+            }
+        } catch (error) {
+            console.error('❌ Firebase initialization error:', error);
+        }
+    });
+
+    // Handle logout
+    document.getElementById('logout-btn')?.addEventListener('click', async (e) => {
+        e.preventDefault();
+        try {
+            if (typeof firebase !== 'undefined') {
+                await firebase.auth().signOut();
+            }
+            window.location.href = '/auth/logout';
+        } catch (error) {
+            console.error('Logout error:', error);
+        }
+    });
+    </script>

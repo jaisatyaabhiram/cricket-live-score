@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+    <%- include('partials/header') %>
+    
+    <main class="container">
+        <div class="dashboard-header" style="flex-direction: column; align-items: flex-start; gap: 1.5rem;">
+            <div class="header-titles">
+                <h1>Cricket Central</h1>
+                <p>Discover tournaments and follow live match updates.</p>
+            </div>
+            <div class="search-box glass-panel" style="width: 100%; max-width: 600px; padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,0.03);">
+                <span style="font-size: 1.2rem;">🔍</span>
+                <input type="text" id="global-search" placeholder="Search team, venue, or tournament name..." style="background: transparent; border: none; color: white; width: 100%; padding: 0.5rem; outline: none;">
+            </div>
+        </div>
+        
+        <section id="live-matches-section">
+            <h2 style="margin-bottom: 1.5rem; font-size: 1.4rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.5rem;">
+                🔴 Live & Upcoming Matches
+            </h2>
+            <div class="matches-container matches-grid" id="matches-list">
+                <div class="empty-state glass-panel" style="grid-column: 1/-1;">
+                    <div class="loader-spinner"></div>
+                    <p>Loading matches...</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="tournaments-section" style="margin-top: 4rem;">
+            <h2 style="margin-bottom: 1.5rem; font-size: 1.4rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.5rem;">
+                🏆 Featured Tournaments
+            </h2>
+            <div class="matches-grid" id="tournaments-list">
+                <div class="empty-state glass-panel" style="grid-column: 1/-1;">
+                    <div class="loader-spinner"></div>
+                    <p>Loading tournaments...</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <%- include('partials/footer') %>
+    
+    <script>
+        let allMatches = [];
+        let allTournaments = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+            
+            // Socket connection for real-time updates
+            const socket = io();
+            socket.on('match-update', (updatedMatch) => {
+                loadData(); 
+            });
+
+            // Global search filtering
+            document.getElementById('global-search').addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase();
+                
+                const filteredMatches = allMatches.filter(m => 
+                    m.team1.toLowerCase().includes(query) || 
+                    m.team2.toLowerCase().includes(query) || 
+                    m.venue.toLowerCase().includes(query)
+                );
+                
+                const filteredTournaments = allTournaments.filter(t => 
+                    t.name.toLowerCase().includes(query) || 
+                    (t.type && t.type.toLowerCase().includes(query))
+                );
+
+                displayMatches(filteredMatches, true);
+                displayTournaments(filteredTournaments, true);
+            });
+        });
+        
+        async function loadData() {
+            try {
+                const [matchRes, tournamentRes] = await Promise.all([
+                    fetch('/api/matches'),
+                    fetch('/api/tournaments')
+                ]);
+                
+                allMatches = await matchRes.json();
+                allTournaments = await tournamentRes.json();
+                
+                displayMatches(allMatches);
+                displayTournaments(allTournaments);
+            } catch (error) {
+                console.error('Error loading data:', error);
+            }
+        }
+        
+        function displayMatches(matches, isFiltered = false) {
+            const container = document.getElementById('matches-list');
+            if (matches.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state glass-panel" style="grid-column: 1/-1;">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">${isFiltered ? '🔍' : '🏏'}</div>
+                        <p>${isFiltered ? 'No matches found.' : 'No live/upcoming matches.'}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = matches.map(match => {
+                const t1 = match.team1Score || { runs: 0, wickets: 0 };
+                const t2 = match.team2Score || { runs: 0, wickets: 0 };
+                const status = (match.matchStatus || 'upcoming').toLowerCase();
+
+                return `
+                <div class="match-card glass-panel" onclick="window.location.href='/match/${match.id}'">
+                    <div class="match-status-badge ${status === 'live' ? 'live live-pulse' : status}">
+                        ${status.toUpperCase()}
+                    </div>
+                    <div class="match-teams-display" style="padding: 1.5rem 1rem;">
+                        <div class="team-col">
+                            <div class="team-name" style="font-size: 1rem;">${match.team1}</div>
+                            <div class="team-score" style="font-size: 1.4rem;">${t1.runs}/${t1.wickets}</div>
+                        </div>
+                        <div class="vs-badge">VS</div>
+                        <div class="team-col">
+                            <div class="team-name" style="font-size: 1rem;">${match.team2}</div>
+                            <div class="team-score" style="font-size: 1.4rem;">${t2.runs}/${t2.wickets}</div>
+                        </div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        function displayTournaments(tournaments, isFiltered = false) {
+            const container = document.getElementById('tournaments-list');
+            if (tournaments.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state glass-panel" style="grid-column: 1/-1;">
+                        <p style="font-size: 0.9rem; color: var(--text-muted);">No tournaments found.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = tournaments.map(t => `
+                <div class="match-card glass-panel" style="padding: 1.5rem;" onclick="window.location.href='/tournament/${t.id}'">
+                    <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--accent-secondary); margin-bottom: 0.5rem; letter-spacing: 0.1em;">
+                        ${t.type || 'Open Tournament'}
+                    </div>
+                    <h3 style="margin-bottom: 1rem; font-size: 1.2rem; color: var(--text-primary);">${t.name}</h3>
+                    <div style="display: flex; justify-content: space-between; align-items: center; color: var(--text-muted); font-size: 0.85rem;">
+                        <span>📅 ${new Date(t.createdAt).toLocaleDateString()}</span>
+                        <span>👥 ${t.teams ? t.teams.length : 0} Teams</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+</html>
